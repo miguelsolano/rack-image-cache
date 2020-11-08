@@ -1,11 +1,12 @@
 require 'rack'
 require 'mime-types'
 require 'fileutils'
+require 'active_support/core_ext' 
 
+# RackMediaCache
 class RackMediaCache
   MEDIA_PROC = proc do |env|
     path = Rack::Utils.unescape(env['PATH_INFO'])
-    puts path
     mime_set = MIME::Types.type_for(path).first
     unless mime_set.nil?
       mime_set.content_type
@@ -18,11 +19,12 @@ class RackMediaCache
   end
 
   def call(env)
-    headers = @app.call(env)
+    status, headers, body = @app.call(env)
     type = @path_proc.call(env)
     if type.include? 'image'
-      puts "imaage"
+      headers['Cache-Control'] = "max-age=#{Time.now.to_i}, public"
+      headers['Expires'] = Time.now.utc.end_of_month.to_s
     end
-    @app.call(env)
+    [status, headers, body]
   end
 end
